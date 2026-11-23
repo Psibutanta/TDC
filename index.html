@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Transtorno Dismórfico Corporal — Entre a imagem e o sofrimento</title>
+<style>
+  :root {
+    /* dark cover palette (teal/slate + gold accent) */
+    --cover-bg-1: #10323a;
+    --cover-bg-2: #1b4b52;
+    --gold: #e0b36a;
+    --gold-soft: #f0d59b;
+    --cover-ink: #f4efe6;
+    --cover-ink-soft: #cfd8d3;
+
+    /* reading page palette (light) */
+    --paper: #fbf9f6;
+    --ink: #22323a;
+    --ink-soft: #566169;
+    --accent: #1b4b52;
+    --accent-soft: #dcebe9;
+    --accent-2: #c98a9b;
+    --line: #e2e6e3;
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    background: #d9d2c7;
+    color: var(--ink);
+    font-family: "Georgia", "Times New Roman", serif;
+    line-height: 1.7;
+    font-size: 18px;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .reader {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px 6px;
+  }
+
+  .book {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    height: min(82vh, 820px);
+    border-radius: 22px;
+    overflow: hidden;
+    box-shadow: 0 26px 60px rgba(20,30,40,0.30);
+    background: var(--paper);
+  }
+
+  .book-progress {
+    position: absolute; top: 0; left: 0; height: 4px; width: 0%;
+    background: linear-gradient(90deg, var(--gold), var(--gold-soft));
+    z-index: 6; transition: width 0.4s ease;
+  }
+
+  .page {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    opacity: 0;
+    transform: translateX(26px);
+    transition: opacity 0.42s ease, transform 0.42s ease;
+    pointer-events: none;
+  }
+  .page.active { opacity: 1; transform: none; pointer-events: auto; }
+  .page.leaving { opacity: 0; transform: translateX(-26px); }
+
+  .page::-webkit-scrollbar { width: 8px; }
+  .page::-webkit-scrollbar-thumb { background: var(--accent-soft); border-radius: 10px; }
+
+  /* ============ COVER (dark, like the reference) ============ */
+  .cover {
+    position: relative;
+    min-height: 100%;
+    padding: 58px 34px 40px;
+    text-align: center;
+    color: var(--cover-ink);
+    background:
+      radial-gradient(120% 80% at 50% 0%, var(--cover-bg-2), var(--cover-bg-1) 70%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  /* faint outlined "mind/head" illustration behind */
+  .cover-art {
+    position: absolute;
+    top: 70px; left: 50%; transform: translateX(-50%);
+    width: 330px; height: auto;
+    opacity: 0.16;
+    pointer-events: none;
+  }
+  .cover > * { position: relative; z-index: 2; }
+
+  .cover .kicker {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.34em;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--gold-soft);
+    line-height: 1.9;
+    margin: 0 0 20px;
+  }
+  .cover .t1 {
+    font-size: clamp(2.1rem, 9vw, 2.9rem);
+    line-height: 1.05;
+    margin: 0;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+  }
+  .cover .t2 {
+    font-style: italic;
+    color: var(--gold);
+    font-size: clamp(2rem, 8.5vw, 2.7rem);
+    line-height: 1.05;
+    margin: 2px 0 0;
+  }
+  .cover .gold-rule {
+    width: 60px; height: 3px; background: var(--gold);
+    border: none; border-radius: 3px; margin: 20px 0 20px;
+  }
+  .cover .lead {
+    font-size: clamp(1rem, 4.2vw, 1.16rem);
+    color: var(--cover-ink);
+    max-width: 360px;
+    margin: 0 auto 26px;
+    line-height: 1.6;
+  }
+  .cover .credits {
+    font-size: 0.82rem;
+    color: var(--cover-ink-soft);
+    max-width: 380px;
+    margin: 0 auto;
+    line-height: 1.75;
+  }
+  .cover .credits strong { color: var(--cover-ink); }
+  .cover .down-hint {
+    margin-top: auto;
+    padding-top: 22px;
+    color: var(--gold-soft);
+    font-size: 1.2rem;
+    animation: bob 2s ease-in-out infinite;
+  }
+  @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
+
+  /* ============ CONTENT PAGES (light) ============ */
+  .content {
+    min-height: 100%;
+    padding: 44px 34px 64px;
+    background: var(--paper);
+  }
+  .page-label {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    text-transform: uppercase; letter-spacing: 0.2em; font-size: 0.64rem;
+    color: var(--accent); margin: 0 0 18px; font-weight: 700;
+  }
+  .page-label::after {
+    content: ""; display: block; width: 40px; height: 2px;
+    background: var(--gold); margin-top: 8px;
+  }
+
+  .intro-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-left: 5px solid var(--accent);
+    border-radius: 14px;
+    padding: 22px 22px;
+    color: var(--ink-soft);
+  }
+
+  .qa-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 14px; }
+  .qa-num {
+    flex: 0 0 auto; width: 42px; height: 42px; border-radius: 50%;
+    background: var(--accent); color: var(--gold-soft);
+    font-family: "Helvetica Neue", Arial, sans-serif; font-weight: 700; font-size: 1.05rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .qa-head h2 {
+    margin: 2px 0 0; font-size: clamp(1.15rem, 5vw, 1.4rem); line-height: 1.26; color: var(--ink);
+  }
+  .content p { margin: 0 0 15px; }
+  .content h2.plain { margin-top: 0; font-size: 1.4rem; }
+
+  .fig { margin: 18px auto; text-align: center; }
+  .fig svg { width: 120px; height: 120px; }
+  .fig figcaption {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.74rem; color: var(--ink-soft); margin-top: 6px; font-style: italic;
+  }
+
+  /* END PAGE (dark again, to bookend) */
+  .end {
+    min-height: 100%;
+    padding: 58px 34px;
+    text-align: center;
+    color: var(--cover-ink);
+    background: radial-gradient(120% 80% at 50% 0%, var(--cover-bg-2), var(--cover-bg-1) 70%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  }
+  .end .foot-tag {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    text-transform: uppercase; letter-spacing: 0.24em; font-size: 0.72rem; color: var(--gold-soft);
+  }
+  .end .gold-rule { width: 54px; height: 3px; background: var(--gold); border:none; border-radius:3px; margin: 14px 0; }
+
+  /* ============ CONTROLS ============ */
+  .controls {
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    padding: 6px 16px 24px;
+  }
+  .nav-btn {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    border: 1px solid rgba(27,75,82,0.25);
+    background: var(--paper);
+    color: var(--accent);
+    padding: 11px 22px;
+    border-radius: 999px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(20,30,40,0.12);
+    transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+    user-select: none;
+  }
+  .nav-btn:hover:not(:disabled) { background: var(--accent); color: var(--gold-soft); transform: translateY(-1px); }
+  .nav-btn:disabled { opacity: 0.38; cursor: default; }
+  .counter {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.85rem; color: var(--ink-soft); min-width: 96px; text-align: center;
+  }
+
+  @media (max-width: 420px) {
+    body { font-size: 16px; }
+    .cover { padding: 48px 26px 34px; }
+    .content { padding: 38px 24px 58px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="reader">
+  <div class="book" id="book">
+    <div class="book-progress" id="bookProgress"></div>
+
+    <!-- PAGE 0: COVER -->
+    <section class="page active">
+      <div class="cover">
+        <!-- faint head/mind outline -->
+        <svg class="cover-art" viewBox="0 0 320 300" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M160 20c70 0 118 50 118 112 0 40-18 60-18 92 0 24 8 34 8 50H60c0-20 6-30 6-52 0-30-18-50-18-90C48 70 96 20 160 20Z"
+                stroke="#e0b36a" stroke-width="2.5"/>
+          <circle cx="120" cy="150" r="5" fill="#e0b36a"/>
+          <circle cx="180" cy="120" r="5" fill="#e0b36a"/>
+          <circle cx="210" cy="170" r="5" fill="#e0b36a"/>
+          <circle cx="150" cy="200" r="5" fill="#e0b36a"/>
+          <circle cx="160" cy="110" r="5" fill="#e0b36a"/>
+          <path d="M120 150 L160 110 L180 120 L210 170 L150 200 L120 150 M160 110 L150 200 M180 120 L150 200"
+                stroke="#e0b36a" stroke-width="1.6"/>
+        </svg>
+
+        <p class="kicker">Psicologia · Psicopatologia</p>
+        <h1 class="t1">Transtorno<br/>Dismórfico Corporal</h1>
+        <p class="t2">Entre a imagem<br/>e o sofrimento</p>
+        <hr class="gold-rule" />
+        <p class="lead">Uma conversa sobre percepção corporal, redes sociais e cuidado psicológico.</p>
+        <p class="credits">
+          <strong>Entrevista com psicóloga clínica</strong><br/>
+          Material informativo para fins acadêmicos
+        </p>
+        <div class="down-hint">↓</div>
+      </div>
+    </section>
+
+    <!-- PAGE 1: INTRO -->
+    <section class="page">
+      <div class="content">
+        <p class="page-label">Apresentação</p>
+        <h2 class="plain">Sobre esta entrevista</h2>
+        <div class="intro-card">
+          <p style="margin:0;">Para aprofundar a compreensão sobre o tema, foi realizada uma entrevista com uma psicóloga clínica que atua na área há seis anos. A profissional relata atender com frequência pacientes que apresentam características relacionadas ao Transtorno Dismórfico Corporal (TDC). A seguir, reunimos os principais pontos da conversa, que abordou sinais clínicos, influência dos padrões de beleza, impactos na vida cotidiana e possibilidades de acompanhamento.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 2: Q1 -->
+    <section class="page">
+      <div class="content">
+        <p class="page-label">Pergunta 1</p>
+        <div class="qa-head">
+          <span class="qa-num">1</span>
+          <h2>Quais são os principais sinais clínicos que ajudam a diferenciar uma insatisfação estética comum do Transtorno Dismórfico Corporal?</h2>
+        </div>
+        <p>Como trabalho principalmente com adolescentes, percebo que alguns sinais são mais fáceis de identificar nessa faixa etária, embora também possam aparecer em adultos. Um exemplo é quando a pessoa apresenta uma preocupação excessiva com uma parte específica do corpo. Ela pode acordar pensando: “Meu nariz está me incomodando novamente, não consigo tirar fotos de frente nem me olhar no espelho”.</p>
+        <p>Já tive pacientes com esse tipo de queixa. Entretanto, é importante considerar que a insatisfação com alguma característica física também é algo comum entre as pessoas, o que pode dificultar a identificação do transtorno durante o acompanhamento terapêutico. O que chama a atenção é a continuidade dessa preocupação e a intensidade com que ela acontece. A pessoa pode apresentar dias em que se sente bem com a própria aparência, mas, na maioria deles, enxerga a si mesma de maneira muito negativa.</p>
+        <p>Tenho uma paciente que apresenta uma relação bastante delicada com a própria imagem nas fotografias. Pessoalmente, ela consegue se considerar bonita, mas, quando tira uma foto, não gosta do que vê, e isso acaba intensificando seu sofrimento. Acredito que a crescente exposição nas redes sociais também tenha influência nesse processo. Portanto, considero que os principais sinais clínicos estão relacionados à percepção negativa e persistente que a pessoa desenvolve sobre si mesma, buscando constantemente pontos que considera defeituosos e concentrando sua atenção neles.</p>
+      </div>
+    </section>
+
+    <!-- PAGE 3: Q2 -->
+    <section class="page">
+      <div class="content">
+        <p class="page-label">Pergunta 2</p>
+        <div class="qa-head">
+          <span class="qa-num">2</span>
+          <h2>Como os padrões de beleza e as redes sociais no Brasil podem contribuir para o desenvolvimento ou agravamento do transtorno?</h2>
+        </div>
+        <p>Na minha perspectiva como psicóloga, os padrões de beleza estão diretamente relacionados a essas questões. É muito difícil separar a construção social dos aspectos diagnósticos, pois vivemos em sociedade e somos influenciados pelo que acontece ao nosso redor. Muitas vezes, os padrões estéticos interferem na maneira como nos enxergamos, nos comportamos e nos expomos.</p>
+        <figure class="fig">
+          <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="62" y="30" width="76" height="140" rx="14" fill="#dcebe9" stroke="#1b4b52" stroke-width="4"/>
+            <rect x="74" y="48" width="52" height="30" rx="5" fill="#c98a9b" opacity="0.75"/>
+            <rect x="74" y="84" width="52" height="30" rx="5" fill="#1b4b52" opacity="0.45"/>
+            <rect x="74" y="120" width="52" height="30" rx="5" fill="#c98a9b" opacity="0.5"/>
+            <path d="M100 162c-9-6-16-11-16-18 0-4 3-7 7-7 3 0 5 2 9 6 4-4 6-6 9-6 4 0 7 3 7 7 0 7-7 12-16 18z" fill="#c98a9b"/>
+          </svg>
+          <figcaption>Padrões estéticos e comparação constante nas redes</figcaption>
+        </figure>
+        <p>Isso pode ser observado no caso que mencionei anteriormente, da paciente que se compara constantemente com as imagens que encontra nas redes sociais. Ela passa a questionar a própria aparência, pensando que deveria ser igual àquela pessoa que aparece em determinado vídeo ou fotografia. Surge, então, uma insatisfação com a própria imagem, que pode se tornar bastante preocupante. Nesse sentido, os padrões de beleza acabam contribuindo para essa percepção distorcida da aparência.</p>
+        <p>Também podemos observar a influência das indústrias que lucram com essa busca constante pelo padrão estético. Nos últimos anos, por exemplo, houve um grande crescimento na procura por medicamentos voltados ao emagrecimento. É claro que existem pessoas que realmente necessitam desses medicamentos, como aquelas que apresentam condições de saúde que justificam o tratamento. Entretanto, sabemos que também existem pessoas que já estão saudáveis e procuram esses recursos apenas para emagrecer ainda mais, podendo até prejudicar a própria saúde.</p>
+        <p>Dessa forma, percebemos uma busca constante por um padrão de beleza que nem sempre é saudável, tanto do ponto de vista psicológico quanto biológico.</p>
+      </div>
+    </section>
+
+    <!-- PAGE 4: Q3 -->
+    <section class="page">
+      <div class="content">
+        <p class="page-label">Pergunta 3</p>
+        <div class="qa-head">
+          <span class="qa-num">3</span>
+          <h2>Quais são os impactos mais comuns do transtorno na autoestima, nos relacionamentos e na qualidade de vida dos pacientes que você atende?</h2>
+        </div>
+        <p>A preocupação excessiva com a própria imagem impacta diretamente os relacionamentos, a autoestima e a qualidade de vida. Quando uma pessoa passa o tempo todo preocupada com sua aparência e com a maneira como acredita ser vista pelos outros, acaba encontrando dificuldades para criar conexões e desenvolver relacionamentos, inclusive consigo mesma. Afinal, quando não estamos bem com nós mesmos, torna-se muito mais difícil construir relações saudáveis.</p>
+        <p>Durante as sessões, procuro trabalhar com meus pacientes a importância do acolhimento e do carinho consigo mesmos. Não se trata de defender aquela ideia de que precisamos estar felizes o tempo inteiro ou acordar todos os dias nos sentindo perfeitamente bem, porque isso é impossível. A questão é aprender a se acolher também nos dias em que não estamos bem. Existem dias em que nos sentimos melhores e outros em que não estamos tão satisfeitos, e isso faz parte da experiência humana.</p>
+        <p>Entretanto, quando a pessoa passa a enxergar obsessivamente a si mesma como alguém que possui algo errado ou defeituoso em sua aparência, isso prejudica a relação que estabelece consigo mesma e, consequentemente, dificulta os outros relacionamentos.</p>
+        <p>Isso pode afetar relacionamentos amorosos, amizades e até mesmo as atividades do cotidiano. Já acompanhei, por exemplo, uma paciente que, quando olhava no espelho e não gostava da própria aparência, simplesmente deixava de sair de casa. Ela cancelava encontros com amigos e desistia de atividades de que gostava por não se sentir bem com a imagem que estava vendo. Trabalhamos essas questões durante o acompanhamento terapêutico, pois esse comportamento demonstrava o quanto a preocupação com a aparência estava interferindo em sua vida.</p>
+      </div>
+    </section>
+
+    <!-- PAGE 5: Q4 -->
+    <section class="page">
+      <div class="content">
+        <p class="page-label">Pergunta 4</p>
+        <div class="qa-head">
+          <span class="qa-num">4</span>
+          <h2>Quais abordagens terapêuticas apresentam melhores resultados e quais são as principais dificuldades no tratamento desses pacientes no Brasil?</h2>
+        </div>
+        <p>Essa é uma pergunta bastante delicada para responder enquanto profissional da Psicologia. Não consigo afirmar com certeza quais abordagens terapêuticas apresentam os melhores ou os piores resultados, pois considero que seria inadequado da minha parte estabelecer esse tipo de comparação.</p>
+        <p>Sou psicóloga sistêmica e também utilizo a perspectiva social, buscando compreender o ambiente em que a pessoa está inserida e as concepções sociais que influenciam sua maneira de se perceber. Dentro do ambiente terapêutico, tenho desenvolvido esse trabalho com meus pacientes de maneira positiva.</p>
+        <p>Tenho colegas que trabalham com a abordagem comportamental, já passei por atendimento com a Psicologia Analítica de Jung e também tive experiências com a Terapia Cognitivo-Comportamental (TCC). Além da minha experiência pessoal, conheço essas abordagens por meio dos estudos e do contato com outros profissionais. Acredito que cada uma pode contribuir de maneira diferente para o acolhimento e o acompanhamento dos pacientes.</p>
+        <p>Gosto muito da perspectiva de Jung, principalmente da ideia de que cada pessoa pode necessitar de um processo diferente. Considero importante que o psicólogo tenha uma visão ampla e consiga compreender as necessidades de cada paciente. Não consigo apontar uma abordagem como a melhor, pois acredito que isso depende muito do que o paciente apresenta, do que precisa naquele momento e de como o profissional conseguirá acolhê-lo.</p>
+        <p>Existem diferentes momentos na vida de uma pessoa: às vezes, ela precisa trabalhar questões mais profundas; em outros momentos, necessita de algo mais prático. Algumas pessoas gostam de falar mais, enquanto outras apresentam maior dificuldade para expressar seus sentimentos. Por isso, acredito que o tratamento deve considerar principalmente as necessidades do paciente, e não apenas uma abordagem terapêutica específica.</p>
+      </div>
+    </section>
+
+    <!-- PAGE 6: Q5 -->
+    <section class="page">
+      <div class="content">
+        <p class="page-label">Pergunta 5</p>
+        <div class="qa-head">
+          <span class="qa-num">5</span>
+          <h2>Qual a idade e gênero mais afetado dentre os pacientes atendidos?</h2>
+        </div>
+        <p>Essa é uma pergunta um pouco delicada, pois já atendi adultos, casais e famílias. Entretanto, nos últimos anos, minha atuação tem sido principalmente com adolescentes. Quando observamos essa questão de uma perspectiva social mais ampla, percebemos que muitos adolescentes são afetados por essas preocupações com a aparência.</p>
+        <p>As mulheres são as mais atingidas, infelizmente, mas isso não significa que os homens também não sejam afetados. Considerando minha experiência profissional, percebo que as meninas adolescentes são um dos grupos que mais apresentam essas questões.</p>
+        <p>Também relaciono essa percepção à minha própria experiência durante a juventude. Naquela época, a rede social mais presente nesse contexto era o Tumblr, enquanto atualmente outras plataformas, como o Twitter, fazem parte dessa realidade. As redes sociais exercem uma influência muito grande, principalmente pelos perfis que as pessoas acompanham e pelos conteúdos aos quais estão constantemente expostas.</p>
+        <p>Portanto, com base na minha experiência profissional, percebo que as meninas adolescentes são um grupo bastante vulnerável a essas questões.</p>
+      </div>
+    </section>
+
+    <!-- PAGE 7: Q6 -->
+    <section class="page">
+      <div class="content">
+        <p class="page-label">Pergunta 6</p>
+        <div class="qa-head">
+          <span class="qa-num">6</span>
+          <h2>A busca por procedimentos estéticos e cirurgias plásticas pode estar relacionada ao transtorno? Como identificar quando essa busca se torna preocupante?</h2>
+        </div>
+        <p>Acredito que tudo aquilo que se torna obsessivo, compulsivo e contínuo merece atenção. Entretanto, uma pessoa que possui uma percepção saudável do próprio corpo e deseja realizar um procedimento estético porque é algo que gostaria de mudar não necessariamente apresenta um problema. Por exemplo, se alguém deseja colocar silicone, considera isso um sonho pessoal, possui condições financeiras e acredita que essa mudança lhe fará bem, não vejo necessariamente algo negativo nessa decisão.</p>
+        <p>Considero muito delicado relacionar diretamente a realização de cirurgias plásticas com algum transtorno psicológico. Porém, essa relação pode acontecer. Quando observamos algumas pessoas, inclusive figuras públicas, que realizam constantemente procedimentos para modificar a aparência, percebemos como essa busca pode se tornar preocupante.</p>
+        <p>É importante lembrar que uma cirurgia plástica envolve mudanças profundas, tanto do ponto de vista biológico quanto psicológico. Na minha opinião, uma das maneiras de identificar quando essa busca se torna preocupante é observar se ela acontece de forma incessante e repetitiva. Isso ocorre quando a pessoa realiza um procedimento, mas logo sente necessidade de fazer outro e, posteriormente, mais um, na tentativa de alcançar uma aparência com a qual nunca fica satisfeita.</p>
+        <p>Esse comportamento merece atenção, pois demonstra que as mudanças realizadas não estão sendo suficientes para diminuir a insatisfação. Por outro lado, quando a pessoa realiza uma mudança que desejava, sente-se satisfeita e segue sua vida tranquilamente, não considero que isso represente necessariamente um problema. O sinal de alerta aparece quando essa busca se torna repetitiva e parece não ter fim.</p>
+      </div>
+    </section>
+
+    <!-- PAGE 8: Q7 -->
+    <section class="page">
+      <div class="content">
+        <p class="page-label">Pergunta 7</p>
+        <div class="qa-head">
+          <span class="qa-num">7</span>
+          <h2>Quais são os principais sinais de evolução positiva durante o acompanhamento psicológico?</h2>
+        </div>
+        <p>Acredito que um dos principais sinais de evolução é perceber que a pessoa consegue continuar vivendo, mesmo quando enfrenta dias em que não está satisfeita consigo mesma. Como mencionei anteriormente, é impossível estar feliz o tempo inteiro, e isso faz parte da vida.</p>
+        <p>Costumo conversar com minhas pacientes sobre essa questão. Às vezes, a pessoa acorda, olha no espelho e pensa que o cabelo não está bonito naquele dia. Tudo bem! Ela pode prender o cabelo, lavar, colocar um boné ou encontrar outra maneira de lidar com aquilo e seguir com sua rotina. Mesmo não estando completamente satisfeita com a aparência, ela consegue viver aquele dia.</p>
+        <p>Acredito que a evolução acontece quando essa insatisfação deixa de paralisar a pessoa e de impedi-la de realizar suas atividades.</p>
+        <p>É importante compreender que nem sempre estaremos completamente satisfeitos com nossa aparência. Quando a pessoa consegue reconhecer algo que ainda a incomoda, mas não permite que isso controle sua vida, considero que existe um avanço muito positivo.</p>
+        <p>Essa tentativa de continuar vivendo, mesmo diante dos próprios desconfortos, está relacionada ao processo de autoacolhimento desenvolvido no ambiente terapêutico.</p>
+      </div>
+    </section>
+
+    <!-- PAGE 9: Q8 -->
+    <section class="page">
+      <div class="content">
+        <p class="page-label">Pergunta 8</p>
+        <div class="qa-head">
+          <span class="qa-num">8</span>
+          <h2>O Transtorno Dismórfico Corporal pode apresentar recaídas mesmo após um tratamento bem-sucedido? Como elas podem ser prevenidas?</h2>
+        </div>
+        <p>Acredito que todos os transtornos podem apresentar momentos de piora ou retorno de determinados sintomas. Utilizo o termo recaída com certa cautela, pois geralmente associamos essa palavra a situações como a dependência química. Entretanto, podemos compreender que existem momentos mais difíceis ao longo do tratamento.</p>
+        <p>Por exemplo, se uma pessoa passou a vida inteira acreditando que possui alguma característica física desagradável, como considerar que seu nariz é feio, essa percepção pode permanecer por muito tempo. Mesmo que consiga trabalhar essa questão durante as sessões e desenvolva maneiras mais saudáveis de lidar com ela, podem existir dias em que essa insatisfação volte a ser mais intensa e até mesmo paralisante.</p>
+        <p>Também considero difícil falar em tratamento bem-sucedido de maneira definitiva, pois, na Psicologia, cada caso apresenta suas particularidades e depende de diferentes fatores. Por isso, não consigo oferecer uma resposta única ou certeira sobre essa questão.</p>
+        <p>Em relação à prevenção, acredito que a continuidade do tratamento e das sessões seja muito importante, assim como manter o diálogo sobre essas questões. O acolhimento precisa acontecer tanto por parte do psicólogo quanto da própria pessoa, que deve compreender que não precisa estar bem o tempo inteiro e que também pode acolher seus momentos de dificuldade.</p>
+        <p>Quando o transtorno provoca prejuízos significativos na rotina, sintomas depressivos ou ansiosos, também é importante realizar uma avaliação mais aprofundada. Em alguns casos, pode haver necessidade de acompanhamento psiquiátrico e tratamento medicamentoso, conforme a avaliação do profissional responsável.</p>
+        <p>Portanto, acredito que a prevenção de novas crises envolve o acompanhamento contínuo, o acolhimento psicológico e o apoio no cotidiano, para que a pessoa não se sinta sozinha quando enfrentar momentos difíceis ou situações que despertem novamente suas preocupações com a aparência.</p>
+      </div>
+    </section>
+
+    <!-- PAGE 10: END -->
+    <section class="page">
+      <div class="end">
+        <svg width="110" height="110" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="100" cy="100" r="70" fill="none" stroke="#e0b36a" stroke-width="3"/>
+          <path d="M70 108c14 10 46 10 60 0" stroke="#e0b36a" stroke-width="5" stroke-linecap="round"/>
+          <circle cx="80" cy="88" r="5" fill="#e0b36a"/>
+          <circle cx="120" cy="88" r="5" fill="#e0b36a"/>
+        </svg>
+        <p class="foot-tag">Entrevista • Material informativo para fins acadêmicos</p>
+        <hr class="gold-rule" />
+        <h2 style="margin:0; font-weight:400;">Transtorno Dismórfico Corporal</h2>
+        <p style="font-style:italic; color:var(--gold); margin:2px 0 0;">Entre a imagem e o sofrimento</p>
+        <p style="font-size:0.9rem; color:var(--cover-ink-soft); margin-top:20px;">Obrigada por ler até aqui.</p>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<div class="controls">
+  <button class="nav-btn" id="prevBtn">← Voltar</button>
+  <span class="counter" id="counter">Capa</span>
+  <button class="nav-btn" id="nextBtn">Avançar →</button>
+</div>
+
+<script>
+  const pages = Array.from(document.querySelectorAll('.page'));
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const counter = document.getElementById('counter');
+  const progress = document.getElementById('bookProgress');
+  let current = 0;
+
+  const labels = ['Capa', 'Apresentação', 'Pergunta 1 de 8', 'Pergunta 2 de 8',
+    'Pergunta 3 de 8', 'Pergunta 4 de 8', 'Pergunta 5 de 8', 'Pergunta 6 de 8',
+    'Pergunta 7 de 8', 'Pergunta 8 de 8', 'Encerramento'];
+
+  function show(index) {
+    if (index < 0 || index >= pages.length) return;
+    const prev = current;
+    current = index;
+    pages.forEach((p, i) => {
+      p.classList.remove('active', 'leaving');
+      if (i === current) { p.classList.add('active'); p.scrollTop = 0; }
+      else if (i === prev && prev !== current) { p.classList.add('leaving'); }
+    });
+    counter.textContent = labels[current] || ((current + 1) + ' / ' + pages.length);
+    prevBtn.disabled = current === 0;
+    nextBtn.disabled = current === pages.length - 1;
+    progress.style.width = (current / (pages.length - 1)) * 100 + '%';
+    nextBtn.textContent = current === pages.length - 1 ? 'Fim' : 'Avançar →';
+  }
+
+  nextBtn.addEventListener('click', () => show(current + 1));
+  prevBtn.addEventListener('click', () => show(current - 1));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') show(current + 1);
+    if (e.key === 'ArrowLeft') show(current - 1);
+  });
+
+  let touchStartX = 0;
+  const book = document.getElementById('book');
+  book.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+  book.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(dx) > 60) { dx < 0 ? show(current + 1) : show(current - 1); }
+  }, { passive: true });
+
+  show(0);
+</script>
+
+</body>
+</html>
